@@ -7,163 +7,186 @@ from streamlit_folium import st_folium
 import time
 
 # --- 1. PAGE SETUP & THEME ---
-st.set_page_config(page_title="METHATWIN AI", layout="wide")
+st.set_page_config(page_title="METHATWIN AI | San Pa Tong", layout="wide")
 
-# --- 2. ADVANCED CSS INJECTION (Fonts, Icons, Modern UI) ---
+# --- 2. ADVANCED CSS (Deep Navy, Orange, White/Ice Blue) ---
 st.markdown("""
     <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&family=Michroma&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
     <style>
         * { font-family: 'Kanit', sans-serif; }
-        .stApp { background-color: #0a0a0a; color: #e0e0e0; }
         
-        /* โลโก้ METHATWIN เรืองแสง */
+        /* พื้นหลังสีน้ำเงินเข้ม (Deep Navy) */
+        .stApp { background-color: #0A192F; color: #E6F1FF; }
+        
+        /* โลโก้ METHATWIN */
         .brand-logo {
             font-family: 'Michroma', sans-serif;
-            font-size: 48px;
-            background: linear-gradient(90deg, #F47B20, #FFB74D, #FF5722);
-            -webkit-background-clip: text;
-            -webkit-text-fill-color: transparent;
-            text-shadow: 0px 0px 20px rgba(244, 123, 32, 0.4);
+            font-size: 42px;
+            color: #F47B20;
+            text-shadow: 0px 0px 15px rgba(244, 123, 32, 0.5);
             margin-bottom: 0px;
-            letter-spacing: 3px;
-            line-height: 1.2;
+            letter-spacing: 2px;
         }
-        .brand-sub { font-size: 14px; color: #888; letter-spacing: 5px; margin-top: -5px; margin-bottom: 30px; text-transform: uppercase; }
+        .brand-sub { font-size: 13px; color: #8892B0; letter-spacing: 4px; margin-top: -5px; margin-bottom: 25px; text-transform: uppercase; }
         
-        /* กรอบ Metric Cards สไตล์หน้าปัดยาน/แผงควบคุม */
+        /* กรอบ Metric Cards (สีน้ำเงินกรมท่า ตัดขอบส้มและขาว) */
         .glass-panel {
-            background: rgba(25, 25, 25, 0.8);
-            border: 1px solid #333;
-            border-left: 4px solid #F47B20;
-            border-radius: 6px;
+            background-color: #112240;
+            border: 1px solid #233554;
+            border-left: 5px solid #F47B20;
+            border-radius: 8px;
             padding: 20px;
             margin-bottom: 15px;
-            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4);
             transition: 0.3s;
         }
-        .glass-panel:hover { border-left: 4px solid #FFB74D; background: rgba(35, 35, 35, 0.9); }
+        .glass-panel:hover { border-left: 5px solid #64FFDA; transform: translateY(-3px); }
         
-        .panel-icon { color: #F47B20; font-size: 18px; margin-right: 8px; }
-        .panel-title { color: #8a8a8a; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
-        .panel-val { font-size: 34px; font-weight: 700; color: #fff; margin: 8px 0 0 0; line-height: 1.1; }
+        .panel-icon { color: #64FFDA; font-size: 18px; margin-right: 8px; }
+        .panel-title { color: #8892B0; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+        .panel-val { font-size: 34px; font-weight: 700; color: #FFFFFF; margin: 8px 0 0 0; line-height: 1.1; }
+        .panel-sub { font-size: 13px; color: #CCD6F6; margin-top: 5px; }
         
-        .text-green { color: #00E676 !important; }
-        .text-red { color: #FF3D00 !important; }
-        .text-orange { color: #F47B20 !important; }
-        .text-blue { color: #00B0FF !important; }
+        /* สีตัวอักษรเน้นย้ำ */
+        .text-accent { color: #F47B20 !important; }
+        .text-ice { color: #64FFDA !important; }
+        .text-danger { color: #FF3D00 !important; }
         
-        .panel-sub { font-size: 13px; color: #666; margin-top: 5px; }
-        
-        /* ซ่อน UI ของ Streamlit ที่ไม่จำเป็น */
+        /* ซ่อนเมนู Streamlit */
         #MainMenu {visibility: hidden;}
         footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 3. DATA ENGINE (ย้ายพิกัดลงทุ่งนา & สร้างควันแบบไล่สี) ---
-# พิกัดใหม่: ลึกเข้าไปในแปลงนาทดลอง หลบหมู่บ้าน
-FIELD_LAT, FIELD_LON = 18.6185, 98.8920
+# --- 3. DATABASE: ข้อมูลแปลงนาจริง ศูนย์วิจัยข้าวสันป่าตอง ---
+PLOT_DATA = {
+    "PLOT_A": {
+        "name": "แปลง A (แปลงทดลอง AWD)",
+        "lat": 18.6185, "lon": 98.8920,
+        "manager": "ศูนย์วิจัยข้าวเชียงใหม่ (แปลงนวัตกรรม)",
+        "status": "AWD (กำลังระบายน้ำ)",
+        "water_level": "-12 cm", "methane": 12.5, "ch4_status": "SAFE (ปลอดภัย)", "color": "#64FFDA",
+        "ai_action": "รักษาระดับน้ำใต้ดินต่อไป"
+    },
+    "PLOT_B": {
+        "name": "แปลง B (แปลงควบคุม น้ำท่วมขัง)",
+        "lat": 18.6198, "lon": 98.8945,
+        "manager": "แปลงเปรียบเทียบ (Baseline)",
+        "status": "FLOODED (น้ำท่วมขังต่อเนื่อง 20 วัน)",
+        "water_level": "+8 cm", "methane": 78.4, "ch4_status": "CRITICAL (วิกฤต)", "color": "#FF3D00",
+        "ai_action": "สั่งการ IoT สูบน้ำออกด่วน!"
+    },
+    "PLOT_C": {
+        "name": "แปลง C (เครือข่ายเกษตรกร)",
+        "lat": 18.6165, "lon": 98.8890,
+        "manager": "กลุ่มเกษตรกรแปลงใหญ่ ต.มะขามหลวง",
+        "status": "TRANSITION (กำลังปรับตัว)",
+        "water_level": "-2 cm", "methane": 45.2, "ch4_status": "WARNING (เฝ้าระวัง)", "color": "#F47B20",
+        "ai_action": "แนะนำให้หยุดสูบน้ำเข้าแปลง"
+    }
+}
 
 @st.cache_data(ttl=5)
-def generate_radar_data(mode):
+def generate_radar_data(plot_key):
     np.random.seed(int(time.time()) % 100)
-    num_points = 800
+    num_points = 500
     
-    # สร้างจุดฟุ้งกระจายในพื้นที่แปลงนา (รัศมีประมาณ 200-300 เมตร)
-    lats = np.random.normal(FIELD_LAT, 0.0012, num_points)
-    lons = np.random.normal(FIELD_LON, 0.0012, num_points)
+    # ดึงพิกัดศูนย์กลางจากแปลงที่เลือก
+    center_lat = PLOT_DATA[plot_key]["lat"]
+    center_lon = PLOT_DATA[plot_key]["lon"]
     
-    if mode == "FLOODED":
-        # น้ำท่วมขัง: สร้างค่าความเข้มข้นสูง (ดันไปทางส้ม-แดง)
+    lats = np.random.normal(center_lat, 0.0008, num_points)
+    lons = np.random.normal(center_lon, 0.0008, num_points)
+    
+    if plot_key == "PLOT_B": # แดง/วิกฤต
         weights = np.random.normal(0.85, 0.15, num_points)
-    else:
-        # AWD: สร้างค่าความเข้มข้นต่ำ (อยู่โซนเขียว-เหลือง)
-        weights = np.random.normal(0.3, 0.15, num_points)
+    elif plot_key == "PLOT_C": # ส้ม/เฝ้าระวัง
+        weights = np.random.normal(0.60, 0.15, num_points)
+    else: # เขียว/AWD
+        weights = np.random.normal(0.20, 0.15, num_points)
         
-    # ตัดขอบเขตค่าให้อยู่ระหว่าง 0 ถึง 1
     weights = np.clip(weights, 0, 1)
-    
     data = [[lat, lon, weight] for lat, lon, weight in zip(lats, lons, weights)]
-    
-    # ใส่จุด Anchor บังคับสีให้ Folium แสดงสเกลครบ (เขียวไปแดง) เสมอ (ซ่อนไว้ไกลๆ)
-    data.append([0, 0, 1.0]) # บังคับให้มีค่า Max (สีแดง)
-    data.append([0, 0, 0.0]) # บังคับให้มีค่า Min (สีเขียว)
-    
+    data.extend([[0, 0, 1.0], [0, 0, 0.0]]) # Anchor สำหรับเรดาร์สี
     return data
 
-# --- 4. SIDEBAR (CONTROL MODULE) ---
+# --- 4. SIDEBAR CONTROL ---
 with st.sidebar:
-    st.markdown('<h1 class="brand-logo" style="font-size:28px;">METHATWIN</h1><div class="brand-sub">Command Center</div>', unsafe_allow_html=True)
+    st.markdown('<h1 class="brand-logo">METHATWIN</h1><div class="brand-sub">IoT & Satellite Sync</div>', unsafe_allow_html=True)
     st.markdown("---")
     
-    st.markdown('<div class="panel-title" style="margin-bottom:10px;"><i class="fa-solid fa-layer-group panel-icon"></i> NAVIGATION</div>', unsafe_allow_html=True)
-    menu = st.radio("", ["LIVE RADAR", "FARMING PROTOCOL"], label_visibility="collapsed")
-    
-    st.markdown("---")
-    st.markdown('<div class="panel-title" style="margin-bottom:10px;"><i class="fa-solid fa-sliders panel-icon"></i> WATER MANAGEMENT</div>', unsafe_allow_html=True)
-    water_mode_raw = st.selectbox("", ["AWD (แกล้งข้าว / ระบายน้ำ)", "FLOODED (น้ำท่วมขังขีดสุด)"], label_visibility="collapsed")
-    water_mode = "FLOODED" if "FLOODED" in water_mode_raw else "AWD"
-
-heat_data = generate_radar_data(water_mode)
-
-# --- 5. DASHBOARD INTERFACE ---
-
-if menu == "LIVE RADAR":
-    # Header โลโก้
-    st.markdown('<h1 class="brand-logo">METHATWIN</h1>', unsafe_allow_html=True)
-    st.markdown('<div class="brand-sub">ARTIFICIAL INTELLIGENCE FOR SUSTAINABLE AGRICULTURE</div>', unsafe_allow_html=True)
-    
-    # Metrics Panel
-    c1, c2, c3, c4 = st.columns(4)
-    if water_mode == "AWD":
-        c1.markdown('<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-cloud panel-icon"></i> Methane Flux</div><div class="panel-val text-green">14.2</div><div class="panel-sub">mg/m²/h (SAFE ZONE)</div></div>', unsafe_allow_html=True)
-        c2.markdown('<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-water panel-icon"></i> Water Level</div><div class="panel-val text-blue">-12 cm</div><div class="panel-sub">DRAINING IN PROGRESS</div></div>', unsafe_allow_html=True)
-        c3.markdown('<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-leaf panel-icon"></i> Carbon Credit</div><div class="panel-val">0.42</div><div class="panel-sub">tCO₂e / Rai</div></div>', unsafe_allow_html=True)
-        c4.markdown('<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-robot panel-icon"></i> AI Action</div><div class="panel-val text-green" style="font-size:24px; margin-top:14px;">MAINTAIN</div><div class="panel-sub">คงสภาพดินแห้งต่อ 3 วัน</div></div>', unsafe_allow_html=True)
-    else:
-        c1.markdown('<div class="glass-panel" style="border-color: #FF3D00;"><div class="panel-title"><i class="fa-solid fa-cloud panel-icon" style="color:#FF3D00;"></i> Methane Flux</div><div class="panel-val text-red">82.5</div><div class="panel-sub">mg/m²/h (CRITICAL)</div></div>', unsafe_allow_html=True)
-        c2.markdown('<div class="glass-panel" style="border-color: #FF3D00;"><div class="panel-title"><i class="fa-solid fa-water panel-icon" style="color:#FF3D00;"></i> Water Level</div><div class="panel-val text-blue">+8 cm</div><div class="panel-sub">OVERFLOW DETECTED</div></div>', unsafe_allow_html=True)
-        c3.markdown('<div class="glass-panel" style="border-color: #FF3D00;"><div class="panel-title"><i class="fa-solid fa-leaf panel-icon" style="color:#FF3D00;"></i> Carbon Credit</div><div class="panel-val text-red">0.00</div><div class="panel-sub">MRV FAILED</div></div>', unsafe_allow_html=True)
-        c4.markdown('<div class="glass-panel" style="border-color: #FF3D00;"><div class="panel-title"><i class="fa-solid fa-robot panel-icon" style="color:#FF3D00;"></i> AI Action</div><div class="panel-val text-red" style="font-size:24px; margin-top:14px;">DRAIN NOW</div><div class="panel-sub">ระบายน้ำออกฉุกเฉิน!</div></div>', unsafe_allow_html=True)
-
-    # Map Section
-    st.markdown('<div style="margin-top:20px; margin-bottom:10px; color:#A0AEC0; font-size:14px; letter-spacing:1px; text-transform:uppercase;"><i class="fa-solid fa-satellite" style="color:#F47B20; margin-right:8px;"></i> Satellite Radar Overlay (Google Maps)</div>', unsafe_allow_html=True)
-    
-    # กำหนดแผนที่ Google Maps แบบเห็นแปลงนาชัดๆ
-    m = folium.Map(
-        location=[FIELD_LAT, FIELD_LON], 
-        zoom_start=17, 
-        tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", 
-        attr="Google Maps Satellite",
-        control_scale=True
+    st.markdown('<div class="panel-title" style="margin-bottom:10px; color:#F47B20;"><i class="fa-solid fa-map-location-dot"></i> TARGET SELECTION</div>', unsafe_allow_html=True)
+    selected_plot = st.radio(
+        "เลือกแปลงนาเป้าหมาย:",
+        ["PLOT_A", "PLOT_B", "PLOT_C"],
+        format_func=lambda x: PLOT_DATA[x]["name"]
     )
     
-    # 🎨 เรดาร์ไล่สีสมจริง (เขียว -> เหลือง -> ส้ม -> แดง)
-    color_gradient = {
-        0.2: '#00E676', # สีเขียว (ปลอดภัย)
-        0.5: '#FFEA00', # สีเหลือง (เฝ้าระวัง)
-        0.7: '#FF9100', # สีส้ม (เริ่มอันตราย)
-        1.0: '#FF3D00'  # สีแดง (วิกฤตมีเทน)
-    }
+    st.markdown("---")
+    st.markdown('<div class="panel-title" style="margin-bottom:10px; color:#64FFDA;"><i class="fa-solid fa-microchip"></i> IoT SENSOR STATUS</div>', unsafe_allow_html=True)
+    st.success("🟢 Node 01: Online\n🟢 Node 02: Online\n🟢 Sentinel-2 API: Synced")
 
-    HeatMap(
-        heat_data, 
-        radius=28,      
-        blur=22,         
-        gradient=color_gradient,
-        max_zoom=18
+heat_data = generate_radar_data(selected_plot)
+current_data = PLOT_DATA[selected_plot]
+
+# --- 5. MAIN DASHBOARD ---
+st.markdown(f'<h2 style="color: #F47B20; font-weight: 700; margin-bottom: 0;">{current_data["name"]}</h2>', unsafe_allow_html=True)
+st.markdown(f'<div style="color: #8892B0; font-size: 15px; margin-bottom: 20px;"><i class="fa-solid fa-user-tie"></i> ผู้รับผิดชอบ: {current_data["manager"]} | 📍 ต.มะขามหลวง อ.สันป่าตอง จ.เชียงใหม่</div>', unsafe_allow_html=True)
+
+# Metrics Panel
+c1, c2, c3, c4 = st.columns(4)
+
+c1.markdown(f'<div class="glass-panel" style="border-left-color: {current_data["color"]};"><div class="panel-title"><i class="fa-solid fa-cloud panel-icon" style="color:{current_data["color"]};"></i> Methane Flux</div><div class="panel-val" style="color:{current_data["color"]};">{current_data["methane"]}</div><div class="panel-sub">mg/m²/h ({current_data["ch4_status"]})</div></div>', unsafe_allow_html=True)
+c2.markdown(f'<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-water panel-icon"></i> Water Level (IoT)</div><div class="panel-val text-ice">{current_data["water_level"]}</div><div class="panel-sub">{current_data["status"]}</div></div>', unsafe_allow_html=True)
+
+# คำนวณคาร์บอนเครดิตจำลอง
+cc_value = "0.45" if selected_plot == "PLOT_A" else ("0.12" if selected_plot == "PLOT_C" else "0.00")
+c3.markdown(f'<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-leaf panel-icon" style="color:#F47B20;"></i> Carbon Credit</div><div class="panel-val text-accent">{cc_value}</div><div class="panel-sub">tCO₂e / Rai (MRV EST.)</div></div>', unsafe_allow_html=True)
+
+c4.markdown(f'<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-robot panel-icon" style="color:#FFFFFF;"></i> AI Recommendation</div><div class="panel-val text-ice" style="font-size:20px; margin-top:14px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;">{current_data["ai_action"]}</div><div class="panel-sub">Action Required</div></div>', unsafe_allow_html=True)
+
+# --- MAP SECTION ---
+st.markdown('<div style="margin-top:15px; margin-bottom:10px; color:#8892B0; font-size:14px; letter-spacing:1px; text-transform:uppercase;"><i class="fa-solid fa-satellite" style="color:#64FFDA; margin-right:8px;"></i> Hybrid Digital Twin Map (Satellite + Ground IoT)</div>', unsafe_allow_html=True)
+
+m = folium.Map(
+    location=[18.6180, 98.8920], # จุดกึ่งกลางภาพรวม
+    zoom_start=16, 
+    tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", 
+    attr="Google Maps Satellite",
+    control_scale=True
+)
+
+# วาดหมุด (Markers) สำหรับ แปลง A, B, C บนแผนที่
+for key, plot in PLOT_DATA.items():
+    icon_color = "green" if key == "PLOT_A" else ("red" if key == "PLOT_B" else "orange")
+    folium.Marker(
+        [plot["lat"], plot["lon"]],
+        popup=folium.Popup(f"<b>{plot['name']}</b><br>ระดับน้ำ: {plot['water_level']}<br>มีเทน: {plot['methane']} mg/m²/h", max_width=250),
+        tooltip=f"คลิกดูข้อมูล {plot['name']}",
+        icon=folium.Icon(color=icon_color, icon="info-sign")
     ).add_to(m)
-    
-    st_folium(m, width=1200, height=520, returned_objects=[])
 
-elif menu == "FARMING PROTOCOL":
-    st.markdown('<h1 class="brand-logo" style="font-size:36px;">FARMING PROTOCOL</h1>', unsafe_allow_html=True)
-    st.markdown('<div class="brand-sub">ACTIONABLE INSIGHTS FOR FARMERS</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="glass-panel"><div class="panel-title text-blue"><i class="fa-solid fa-droplet panel-icon text-blue"></i> PHASE 1: VEGETATIVE STAGE (0-20 DAYS)</div><p style="margin-top:10px;">รักษาระดับน้ำให้ท่วมผิวดิน 2-5 ซม. เพื่อควบคุมวัชพืชหลังปักดำ</p></div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="glass-panel" style="border-left: 4px solid #F47B20; background: rgba(40,20,10,0.8);"><div class="panel-title text-orange"><i class="fa-solid fa-sun panel-icon text-orange"></i> PHASE 2: ACTIVE TILLERING / AWD (20-45 DAYS) - CURRENT STAGE</div><p style="margin-top:10px;"><b>ระบบปฏิบัติการ:</b> หยุดเติมนํ้า ปล่อยให้นํ้าแห้งจนระดับนํ้าใต้ดินลดลงไปถึง -15 ซม. ท่อ PVC ดินจะเริ่มแตกแตง ออกซิเจนแทรกซึมลงสู่ราก จุลินทรีย์สร้างมีเทนตายลง ตัดวงจรแก๊สเรือนกระจก</p></div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="glass-panel"><div class="panel-title text-green"><i class="fa-solid fa-wheat-awn panel-icon text-green"></i> PHASE 3: REPRODUCTIVE STAGE (45-80 DAYS)</div><p style="margin-top:10px;">เติมน้ำกลับเข้าแปลงให้สูง 5 ซม. ตลอดช่วงนี้ เพื่อให้ข้าวผสมเกสรและสร้างเมล็ดอย่างสมบูรณ์ ป้องกันผลผลิตร่วงหล่น</p></div>', unsafe_allow_html=True)
+# เรดาร์ไล่สีสมจริง
+color_gradient = { 0.2: '#64FFDA', 0.5: '#FFEA00', 0.7: '#F47B20', 1.0: '#FF3D00' }
+
+HeatMap(
+    heat_data, 
+    radius=30,      
+    blur=20,         
+    gradient=color_gradient,
+    max_zoom=18
+).add_to(m)
+
+st_folium(m, width=1200, height=500, returned_objects=[])
+
+# --- DATA TABLE (ตัวแปรเชิงลึก) ---
+st.markdown("### 📊 ข้อมูลพารามิเตอร์เชิงลึก (Deep Parameters Analysis)")
+df_params = pd.DataFrame({
+    "ตัวแปร": ["ดัชนีพืชพรรณ (NDVI)", "ดัชนีผิวน้ำ (NDWI)", "อุณหภูมิดิน (IoT)", "ความชื้นดิน (IoT)"],
+    "PLOT A (AWD)": ["0.72 (สมบูรณ์)", "-0.15 (แห้ง)", "28.5 °C", "45% (เหมาะสม)"],
+    "PLOT B (ท่วมขัง)": ["0.68 (ปกติ)", "0.45 (น้ำขังสูง)", "26.2 °C", "100% (อิ่มตัว)"],
+    "แหล่งข้อมูล": ["ดาวเทียม Sentinel-2", "ดาวเทียม Sentinel-2", "เซนเซอร์ฝังดิน (Depth 10cm)", "เซนเซอร์ฝังดิน (Depth 10cm)"]
+})
+st.table(df_params)
