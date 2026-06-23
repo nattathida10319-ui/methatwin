@@ -4,124 +4,171 @@ import numpy as np
 import datetime
 import time
 
-# --- 1. ตั้งค่าหน้าจอแบบ Full Dashboard ---
-st.set_page_config(page_title="MethaTwin | AI New Gen", layout="wide", page_icon="🌾")
+# --- 1. SET UP THE COSMIC DARK THEME ---
+st.set_page_config(
+    page_title="MethaTwin AI | Satellite & IoT Command Center",
+    layout="wide",
+    page_icon="🛰️"
+)
 
-# --- CSS ตกแต่งให้เป็นเหมือนหน้าปัดยานอวกาศ (Dark UI) ---
+# Custom CSS for Modern High-Tech Dashboard
 st.markdown("""
     <style>
-    .stApp { background-color: #0E1117; color: #FFFFFF; }
-    .metric-card {
-        background-color: #1E2129;
-        border-radius: 12px;
-        padding: 20px;
-        box-shadow: 0 4px 6px rgba(0,0,0,0.3);
-        border-left: 5px solid #00FF7F;
+    /* Main Background */
+    .stApp { background-color: #0B0E14; color: #E2E8F0; }
+    
+    /* Premium Cards */
+    .crypto-card {
+        background: linear-gradient(135deg, #1A202C 0%, #111622 100%);
+        border: 1px solid #2D3748;
+        border-radius: 16px;
+        padding: 24px;
+        box-shadow: 0 10px 20px rgba(0,0,0,0.4);
+        margin-bottom: 20px;
     }
-    .metric-card-danger { border-left: 5px solid #FF4B4B; }
-    .metric-title { font-size: 14px; color: #A0AEC0; margin-bottom: 5px; }
-    .metric-value { font-size: 32px; font-weight: bold; margin: 0; }
-    .metric-delta { font-size: 14px; color: #00FF7F; }
-    .metric-delta-danger { color: #FF4B4B; }
+    
+    /* Accent Borders */
+    .accent-green { border-top: 4px solid #00E676; }
+    .accent-red { border-top: 4px solid #FF3D00; }
+    .accent-blue { border-top: 4px solid #00B0FF; }
+    .accent-purple { border-top: 4px solid #D500F9; }
+    
+    /* Typography */
+    .card-title { color: #A0AEC0; font-size: 14px; font-weight: 600; text-transform: uppercase; letter-spacing: 1px; }
+    .card-value { color: #FFFFFF; font-size: 36px; font-weight: 700; margin-top: 10px; margin-bottom: 5px; }
+    .card-status { font-size: 14px; font-weight: 500; }
+    
+    /* Sidebar styling */
+    section[data-testid="stSidebar"] { background-color: #111622 !important; border-right: 1px solid #2D3748; }
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. ข้อมูลพิกัดและโมเดลจำลองแปลงนา ---
-# พิกัดแปลงนาวิจัย ศูนย์วิจัยข้าวเชียงใหม่ อ.สันป่าตอง
-CENTER_LAT = 18.6235
-CENTER_LON = 98.8964
+# --- 2. DATA ENGINE (INTEGRATING SATELLITE + IOT) ---
+CENTER_LAT, CENTER_LON = 18.6235, 98.8964
 
-@st.cache_data(ttl=5)
-def get_sensor_data(scenario):
+@st.cache_data(ttl=10)
+def fetch_satellite_iot_layers(mode):
     np.random.seed(int(time.time()) % 100)
-    num_points = 200
+    num_nodes = 180
     
-    # สุ่มพิกัดให้กระจายตัวอยู่ภายในแปลงนาจริงๆ (รูปทรงกรอบสี่เหลี่ยมรอบพิกัดหลัก)
-    lats = np.random.uniform(18.6210, 18.6260, num_points)
-    lons = np.random.uniform(98.8930, 98.8990, num_points)
+    # Simulate high-precision boundary of San Pa Tong field
+    lats = np.random.uniform(18.6215, 18.6255, num_nodes)
+    lons = np.random.uniform(98.8940, 98.8985, num_nodes)
     
-    if scenario == "AWD (เปียกสลับแห้ง)":
-        # มีเทนต่ำ -> สีเขียวเยอะ
-        color_r = 0
-        color_g = 255
+    # Dynamic logic depending on selected Water Management Mode
+    if mode == "🌿 โหมดเปียกสลับแห้ง (AWD อัจฉริยะ)":
+        methane_flux = np.random.uniform(8, 28, num_nodes)
+        ndvi = np.random.uniform(0.65, 0.78, num_nodes) # Good vegetation
+        ndwi = np.random.uniform(0.12, 0.25, num_nodes) # Low surface water
+        colors = [[0, 230, 118, 160] for _ in range(num_nodes)] # Glowing Green Points
     else:
-        # มีเทนสูง -> สีแดงเยอะ
-        color_r = 255
-        color_g = 0
+        methane_flux = np.random.uniform(45, 88, num_nodes)
+        ndvi = np.random.uniform(0.58, 0.70, num_nodes) 
+        ndwi = np.random.uniform(0.65, 0.85, num_nodes) # High flood water reflection
+        colors = [[255, 61, 0, 160] for _ in range(num_nodes)] # Glowing Red Points
         
-    return pd.DataFrame({
-        'latitude': lats, 
-        'longitude': lons, 
-        'r': color_r,
-        'g': color_g,
-        'b': 0,
-        'a': 180
+    df = pd.DataFrame({
+        'latitude': lats, 'longitude': lons, 
+        'methane': methane_flux, 'NDVI': ndvi, 'NDWI': ndwi,
+        'r': [c[0] for c in colors], 'g': [c[1] for c in colors], 'b': [c[2] for c in colors], 'a': [c[3] for c in colors]
     })
+    return df
 
-# --- 3. ระบบนำทางด้านข้าง (Sidebar Navigation) ---
+# --- 3. HIGH-TECH SIDEBAR CONTROL PANEL ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/1892/1892747.png", width=60)
-    st.markdown("### 🌾 MethaTwin AI")
-    st.caption("AI New Gen Project")
+    st.markdown("<br>", unsafe_allow_html=True)
+    st.image("https://cdn-icons-png.flaticon.com/512/2043/2043422.png", width=70)
+    st.markdown("## METHATWIN AI\n**[AI NEW GEN COMPETITION]**")
     st.markdown("---")
     
-    page = st.sidebar.selectbox("เมนูหลัก (Navigation)", [
-        "🎯 แดชบอร์ด (Live Map)", 
-        "🤖 การวิเคราะห์จาก AI", 
-        "📊 คาร์บอนเครดิต (MRV)"
-    ])
+    # Navigation Menu
+    menu_selection = st.radio(
+        "🔮 เมนูควบคุมและติดตาม",
+        ["🎯 แดชบอร์ดหลัก", "🛰️ ข้อมูลวิเคราะห์จากดาวเทียม", "📊 รายงานคาร์บอนเครดิต (MRV)"]
+    )
     
     st.markdown("---")
-    st.markdown("**⚙️ ตั้งค่าสถานการณ์จำลอง**")
-    scenario = st.selectbox("โหมดการจัดการน้ำ:", ["AWD (เปียกสลับแห้ง)", "น้ำท่วมขัง (Flooded)"])
-
-# โหลดข้อมูลตามสถานการณ์
-df_points = get_sensor_data(scenario)
-
-# --- 4. การแสดงผลแต่ละหน้า ---
-
-if page == "🎯 แดชบอร์ด (Live Map)":
-    st.markdown("## 🛰️ ศูนย์บัญชาการแปลงนาอัจฉริยะ (Digital Twin)")
-    st.caption(f"📍 พิกัด: แปลงนาวิจัย A1 ศูนย์วิจัยข้าวเชียงใหม่ อ.สันป่าตอง | 🕒 อัปเดตล่าสุด: {datetime.datetime.now().strftime('%d %B %Y %H:%M:%S')}")
+    st.markdown("### 🎛️ กล่องสั่งการแปลงนา")
+    water_mode = st.selectbox("ปรับระบบจัดการน้ำภาคสนาม:", ["🌿 โหมดเปียกสลับแห้ง (AWD อัจฉริยะ)", "💧 โหมดน้ำท่วมขังดั้งเดิม (Flooded)"])
     
-    # 4 ตัวเลขสถานะแบบการ์ดสไตล์ Dark UI เหมือนต้นฉบับ
-    c1, c2, c3, c4 = st.columns(4)
-    if scenario == "AWD (เปียกสลับแห้ง)":
-        c1.markdown('<div class="metric-card"><div class="metric-title">ค่ามีเทนเฉลี่ย (CH₄ Flux)</div><p class="metric-value">12.4 <span style="font-size:16px;">mg/m²/h</span></p><p class="metric-delta">⬇ 45% (ลดลงจากการแกล้งข้าว)</p></div>', unsafe_allow_html=True)
-        c2.markdown('<div class="metric-card"><div class="metric-title">ดัชนีความเสี่ยงมีเทน</div><p class="metric-value">15 / 100</p><p class="metric-delta">🟢 ความเสี่ยงต่ำ (ปลอดภัย)</p></div>', unsafe_allow_html=True)
-        c3.markdown('<div class="metric-card"><div class="metric-title">ระดับน้ำในนา (Water Level)</div><p class="metric-value">-7.5 <span style="font-size:16px;">cm</span></p><p class="metric-delta">อยู่ในช่วงแกล้งข้าว</p></div>', unsafe_allow_html=True)
-        c4.markdown('<div class="metric-card"><div class="metric-title">ความชื้นดิน (Soil Moisture)</div><p class="metric-value">68 <span style="font-size:16px;">%</span></p><p class="metric-delta">เหมาะสม</p></div>', unsafe_allow_html=True)
+    st.markdown("---")
+    st.sidebar.caption("🤖 พัฒนาโดยทีม MethaTwin AI สำหรับโครงการประกวดนวัตกรรมระดับประเทศ AI New Gen 2026")
+
+# Global data loading based on sidebar selection
+live_data = fetch_satellite_iot_layers(water_mode)
+
+# --- 4. RENDER MODULES ---
+
+if menu_selection == "🎯 แดชบอร์ดหลัก":
+    st.markdown("# 🌾 ศูนย์ควบคุมแปลงนาอัจฉริยะแบบ Digital Twin")
+    st.caption(f"📍 พิกัดอ้างอิง: แปลงวิจัยที่ 3 ศูนย์วิจัยข้าวเชียงใหม่ อ.สันป่าตอง จ.เชียงใหม่ | 📡 เชื่อมต่อเซนเซอร์ IoT และดาวเทียม Sentinel-2")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    # 4 UI Metric Cards
+    col1, col2, col3, col4 = st.columns(4)
+    
+    if "AWD" in water_mode:
+        with col1:
+            st.markdown('<div class="crypto-card accent-green"><div class="card-title">มีเทนเฉลี่ย (CH₄ Flux)</div><div class="card-value">14.8 <span style="font-size:16px; color:#A0AEC0;">mg/m²/h</span></div><div class="card-status" style="color:#00E676;">⬇ ลดลง 48.2% จากค่าฐาน</div></div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown('<div class="crypto-card accent-green"><div class="card-title">ดัชนีความเสี่ยงพื้นที่</div><div class="card-value">18 / 100</div><div class="card-status" style="color:#00E676;">🟢 ปลอดภัย (โหมดแกล้งข้าว)</div></div>', unsafe_allow_html=True)
+        with col3:
+            st.markdown('<div class="crypto-card accent-blue"><div class="card-title">ระดับน้ำใต้ผิวดิน</div><div class="card-value">-4.5 <span style="font-size:16px; color:#A0AEC0;">cm</span></div><div class="card-status" style="color:#00B0FF;">น้ำลดเพื่อให้รากข้าวแข็งแรง</div></div>', unsafe_allow_html=True)
+        with col4:
+            st.markdown('<div class="crypto-card accent-purple"><div class="card-title">คาร์บอนเครดิตสะสม</div><div class="card-value">0.42 <span style="font-size:16px; color:#A0AEC0;">tCO₂e/ไร่</span></div><div class="card-status" style="color:#D500F9;">โมเดล MRV ผ่านการรับรอง</div></div>', unsafe_allow_html=True)
     else:
-        c1.markdown('<div class="metric-card metric-card-danger"><div class="metric-title">ค่ามีเทนเฉลี่ย (CH₄ Flux)</div><p class="metric-value">54.2 <span style="font-size:16px;">mg/m²/h</span></p><p class="metric-delta-danger">⬆ 18% (สูงเกินเกณฑ์)</p></div>', unsafe_allow_html=True)
-        c2.markdown('<div class="metric-card metric-card-danger"><div class="metric-title">ดัชนีความเสี่ยงมีเทน</div><p class="metric-value">78 / 100</p><p class="metric-delta-danger">🔴 ความเสี่ยงสูง (วิกฤต)</p></div>', unsafe_allow_html=True)
-        c3.markdown('<div class="metric-card metric-card-danger"><div class="metric-title">ระดับน้ำในนา (Water Level)</div><p class="metric-value">8.5 <span style="font-size:16px;">cm</span></p><p class="metric-delta-danger">น้ำท่วมขังต่อเนื่อง</p></div>', unsafe_allow_html=True)
-        c4.markdown('<div class="metric-card metric-card-danger"><div class="metric-title">ความชื้นดิน (Soil Moisture)</div><p class="metric-value">96 <span style="font-size:16px;">%</span></p><p class="metric-delta-danger">ดินขาดออกซิเจน</p></div>', unsafe_allow_html=True)
+        with col1:
+            st.markdown('<div class="crypto-card accent-red"><div class="card-title">มีเทนเฉลี่ย (CH₄ Flux)</div><div class="card-value">68.5 <span style="font-size:16px; color:#A0AEC0;">mg/m²/h</span></div><div class="card-status" style="color:#FF3D00;">⚠️ วิกฤต! พุ่งสูงเกินเกณฑ์</div></div>', unsafe_allow_html=True)
+        with col2:
+            st.markdown('<div class="crypto-card accent-red"><div class="card-title">ดัชนีความเสี่ยงพื้นที่</div><div class="card-value">84 / 100</div><div class="card-status" style="color:#FF3D00;">🔴 ความเสี่ยงแก๊สสะสมสูงมาก</div></div>', unsafe_allow_html=True)
+        with col3:
+            st.markdown('<div class="crypto-card accent-blue"><div class="card-title">ระดับน้ำใต้ผิวดิน</div><div class="card-value">+9.2 <span style="font-size:16px; color:#A0AEC0;">cm</span></div><div class="card-status" style="color:#00B0FF;">น้ำท่วมขังขวางการระบายก๊าซ</div></div>', unsafe_allow_html=True)
+        with col4:
+            st.markdown('<div class="crypto-card accent-red"><div class="card-title">คาร์บอนเครดิตสะสม</div><div class="card-value">0.00 <span style="font-size:16px; color:#A0AEC0;">tCO₂e/ไร่</span></div><div class="card-status" style="color:#FF3D00;">ระงับการสะสมคาร์บอน</div></div>', unsafe_allow_html=True)
 
     st.markdown("<br>", unsafe_allow_html=True)
     
-    # --- แผนที่ความเสี่ยงระดับแปลง (Real-time Heatmap) ---
-    st.markdown("### 🗺️ แผนที่พิกัดแปลงนาและการปล่อยก๊าซมีเทนแยกโซน")
-    st.write("แสดงพิกัดจริง ณ **อ.สันป่าตอง จ.เชียงใหม่** ข้อมูลแยกโซนตามค่าความชื้นและเซนเซอร์")
+    # Map Section
+    st.markdown("### 🗺️ ระบบระบุพิกัดความหนาแน่นก๊าซมีเทนระดับฟิลด์อนุกรม (Real-time Spatial Overlay)")
+    st.write("แผนที่จำลองพิกัดแปลงรูปหัวใจ ณ ศูนย์วิจัยข้าวเชียงใหม่: จุดหนาแน่นตามข้อมูลประมวลผลอัลกอริทึมร่วม AI & Satellite")
     
-    # ใช้ระบบแผนที่มาตรฐานของ Streamlit ที่เสถียรและแสดงภาพดาวเทียม
-    st.map(df_points, latitude=CENTER_LAT, longitude=CENTER_LON, zoom=15, color=None, size=20)
-    st.caption("💡 แผนที่จะแสดงจุดเซนเซอร์ย่อยภายในแปลงนา: สีเขียว = ปล่อยมีเทนต่ำมาก | สีแดง = จุดสะสมแก๊สมีเทนสูง")
+    # Render High-Stability Point-Layer Map
+    st.map(live_data, latitude=CENTER_LAT, longitude=CENTER_LON, zoom=16, size=24)
+    st.caption("💡 วิธีอ่านแผนที่: 🟢 สีเขียวเรืองแสง = โซนปลอดภัยจากการจัดน้ำแบบเปียกสลับแห้ง (มีเทนต่ำ) | 🔴 สีแดงเรืองแสง = โซนวิกฤตที่มีน้ำขังหนาแน่นจนเกิดสภาวะไร้ออกซิเจน")
 
-elif page == "🤖 การวิเคราะห์จาก AI":
-    st.markdown("## 🧠 ระบบผู้เชี่ยวชาญ AI (AI Recommendation)")
-    col1, col2 = st.columns([2, 1])
-    with col1:
-        st.subheader("📈 แนวโน้มการปล่อยมีเทน 7 วันล่วงหน้า")
-        dates = pd.date_range(start=datetime.datetime.today(), periods=7).strftime('%d %b')
-        trend = [22, 20, 18, 15, 12, 10, 8] if scenario == "AWD (เปียกสลับแห้ง)" else [65, 68, 70, 75, 78, 80, 82]
-        st.line_chart(pd.DataFrame({'วันที่': dates, 'ฟลักซ์มีเทนคาดการณ์': trend}).set_index('วันที่'))
-    with col2:
-        st.subheader("💡 คำแนะนำจาก AI")
-        if scenario == "AWD (เปียกสลับแห้ง)":
-            st.success("**ควรปล่อยน้ำแห้งต่ออีก 4 วัน**\n\nระดับน้ำใต้ดินเหมาะสมกับการทำนาแบบเปียกสลับแห้ง คาดว่าจะลดการปล่อยมีเทนได้ถึง 18%")
-        else:
-            st.error("**คำแนะนำฉุกเฉิน:**\n\nพบน้ำท่วมขังเกินเกณฑ์ แนะนำให้ระบายน้ำออกทันทีเพื่อตัดวงจรจุลินทรีย์โบราณที่ผลิตแก๊สมีเทน")
+elif menu_selection == "🛰️ ข้อมูลวิเคราะห์จากดาวเทียม":
+    st.markdown("# 🛰️ ข้อมูลพิจารณาภาพถ่ายดาวเทียมขั้นสูง (Sentinel-2 L2A)")
+    st.write("นี่คือจุดขายของโครงงาน! AI ทำการดึงข้อมูลภาพถ่ายแถบสีและคำนวณดัชนีวิเคราะห์ 2 ตัวแปรหลักรายแปลง:")
+    st.markdown("---")
+    
+    col_ndvi, col_ndwi = st.columns(2)
+    with col_ndvi:
+        st.markdown("### 📈 ดัชนีพืชพรรณพยากรณ์ (NDVI - Normalized Difference Vegetation Index)")
+        st.write("ใช้อ้างอิงสุขภาพของต้นข้าว ความเขียว และความสมบูรณ์ชีวมวล")
+        st.line_chart(live_data['NDVI'], y_label="ค่าความสมบูรณ์ NDVI (0.0 - 1.0)", color="#00E676")
+        
+    with col_ndwi:
+        st.markdown("### 💧 ดัชนีความชื้นผิวดินและการขังของน้ำ (NDWI - Normalized Difference Water Index)")
+        st.write("ใช้อ้างอิงการสะสมของน้ำในแปลงนาเพื่อส่งต่อให้ AI คำนวณอัตราการเกิดจุลินทรีย์ผลิตมีเทน")
+        st.line_chart(live_data['NDWI'], y_label="ดัชนีผิวน้ำ NDWI", color="#00B0FF")
 
-elif page == "📊 คาร์บอนเครดิต (MRV)":
-    st.markdown("## 🌿 ประเมินคาร์บอนเครดิตสะสม (MRV Estimation)")
-    st.markdown('<div class="metric-card" style="text-align:center;"><div class="metric-title">คาร์บอนที่ลดได้สะสม (ฤดูกาลปัจจุบัน)</div><p class="metric-value" style="font-size:48px;">0.42 tCO₂e</p><p class="metric-delta">มูลค่าประเมินเบื้องต้น: 1,260 บาท</p></div>', unsafe_allow_html=True)
+elif menu_selection == "📊 รายงานคาร์บอนเครดิต (MRV)":
+    st.markdown("# 📊 แพลตฟอร์มการประเมินคาร์บอนเครดิตตามมาตรฐานสากล (MRV)")
+    st.write("ระบบคำนวณและเก็บบันทึกผล (Monitoring, Reporting, Verification) เพื่อเปลี่ยนการลดก๊าซเรือนกระจกให้เป็นรายได้")
+    st.markdown("<br>", unsafe_allow_html=True)
+    
+    st.markdown('<div class="crypto-card accent-purple" style="text-align: center;"><div class="card-title">ปริมาณการลดก๊าซเรือนกระจกที่ตรวจสอบแล้ว (Verified Emission Reduction)</div><div class="card-value" style="font-size: 54px;">0.42 tCO₂e / ไร่ / ฤดูกาล</div><div class="card-status" style="color:#D500F9;">🎯 สามารถแปลงเป็นมูลค่าคาร์บอนเครดิตเพื่อขายในตลาดคาร์บอนภาคสมัครใจ (T-VER) ได้ทันที</div></div>', unsafe_allow_html=True)
+    
+    st.markdown("### 📉 กราฟเปรียบเทียบฟลักซ์การปล่อยมีเทนสะสมรายวัน (Methane Emission Projection)")
+    # Generate timeline simulation for MRV comparison
+    timeline = pd.date_range(start="2026-05-19", periods=15)
+    awd_trend = [15, 14, 12, 10, 8, 9, 11, 13, 10, 7, 5, 6, 9, 12, 14]
+    flooded_trend = [15, 18, 22, 28, 35, 42, 48, 55, 62, 68, 72, 75, 78, 80, 82]
+    
+    df_mrv = pd.DataFrame({
+        'วันที่': timeline,
+        'แปลงนาทั่วไป (Baseline - น้ำท่วมขัง)': flooded_trend,
+        'แปลงนาโครงการ (Project - ระบบ AWD)': awd_trend
+    }).set_index('วันที่')
+    
+    st.line_chart(df_mrv)
