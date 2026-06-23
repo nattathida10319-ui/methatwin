@@ -1,150 +1,169 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import datetime
 import folium
 from folium.plugins import HeatMap
 from streamlit_folium import st_folium
 import time
 
-# --- 1. SET UP THE UI THEME (โทนส้ม-ดำ สไตล์พรรคประชาชน) ---
-st.set_page_config(page_title="MethaTwin | AI New Gen", layout="wide", page_icon="🌾")
+# --- 1. PAGE SETUP & THEME ---
+st.set_page_config(page_title="METHATWIN AI", layout="wide")
 
+# --- 2. ADVANCED CSS INJECTION (Fonts, Icons, Modern UI) ---
 st.markdown("""
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;700&family=Michroma&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
     <style>
-    .stApp { background-color: #121212; color: #FFFFFF; }
-    
-    /* การ์ดข้อมูล โทนดำตัดขอบส้ม */
-    .metric-card {
-        background-color: #1E1E1E;
-        border-radius: 12px;
-        padding: 24px;
-        box-shadow: 0 4px 10px rgba(244, 123, 32, 0.1);
-        border-top: 4px solid #F47B20; /* สีส้มพรรคประชาชน */
-        margin-bottom: 20px;
-    }
-    
-    .card-title { color: #A0AEC0; font-size: 14px; font-weight: 600; }
-    .card-value { color: #F47B20; font-size: 38px; font-weight: 700; margin: 10px 0; }
-    .card-status { font-size: 15px; font-weight: 500; color: #E2E8F0; }
-    
-    /* หัวข้อหลัก */
-    h1, h2, h3 { color: #F47B20 !important; }
+        * { font-family: 'Kanit', sans-serif; }
+        .stApp { background-color: #0a0a0a; color: #e0e0e0; }
+        
+        /* โลโก้ METHATWIN เรืองแสง */
+        .brand-logo {
+            font-family: 'Michroma', sans-serif;
+            font-size: 48px;
+            background: linear-gradient(90deg, #F47B20, #FFB74D, #FF5722);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            text-shadow: 0px 0px 20px rgba(244, 123, 32, 0.4);
+            margin-bottom: 0px;
+            letter-spacing: 3px;
+            line-height: 1.2;
+        }
+        .brand-sub { font-size: 14px; color: #888; letter-spacing: 5px; margin-top: -5px; margin-bottom: 30px; text-transform: uppercase; }
+        
+        /* กรอบ Metric Cards สไตล์หน้าปัดยาน/แผงควบคุม */
+        .glass-panel {
+            background: rgba(25, 25, 25, 0.8);
+            border: 1px solid #333;
+            border-left: 4px solid #F47B20;
+            border-radius: 6px;
+            padding: 20px;
+            margin-bottom: 15px;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.6);
+            transition: 0.3s;
+        }
+        .glass-panel:hover { border-left: 4px solid #FFB74D; background: rgba(35, 35, 35, 0.9); }
+        
+        .panel-icon { color: #F47B20; font-size: 18px; margin-right: 8px; }
+        .panel-title { color: #8a8a8a; font-size: 13px; text-transform: uppercase; letter-spacing: 1px; font-weight: 500; }
+        .panel-val { font-size: 34px; font-weight: 700; color: #fff; margin: 8px 0 0 0; line-height: 1.1; }
+        
+        .text-green { color: #00E676 !important; }
+        .text-red { color: #FF3D00 !important; }
+        .text-orange { color: #F47B20 !important; }
+        .text-blue { color: #00B0FF !important; }
+        
+        .panel-sub { font-size: 13px; color: #666; margin-top: 5px; }
+        
+        /* ซ่อน UI ของ Streamlit ที่ไม่จำเป็น */
+        #MainMenu {visibility: hidden;}
+        footer {visibility: hidden;}
     </style>
 """, unsafe_allow_html=True)
 
-# --- 2. DATA ENGINE (จำลองจุดข้อมูลให้เป็นกลุ่มควัน) ---
-CENTER_LAT, CENTER_LON = 18.6235, 98.8964
+# --- 3. DATA ENGINE (ย้ายพิกัดลงทุ่งนา & สร้างควันแบบไล่สี) ---
+# พิกัดใหม่: ลึกเข้าไปในแปลงนาทดลอง หลบหมู่บ้าน
+FIELD_LAT, FIELD_LON = 18.6185, 98.8920
 
-@st.cache_data(ttl=10)
-def generate_heatmap_data(mode):
+@st.cache_data(ttl=5)
+def generate_radar_data(mode):
     np.random.seed(int(time.time()) % 100)
-    # สร้างจุดข้อมูล 500 จุด ให้ดูเนียนเป็นกลุ่มควัน
-    lats = np.random.normal(CENTER_LAT, 0.0015, 500)
-    lons = np.random.normal(CENTER_LON, 0.0015, 500)
+    num_points = 800
     
-    if mode == "น้ำท่วมขัง (วิกฤต)":
-        weights = np.random.uniform(0.6, 1.0, 500) # น้ำขัง มีเทนเข้มข้น (สีแดง/ส้ม)
+    # สร้างจุดฟุ้งกระจายในพื้นที่แปลงนา (รัศมีประมาณ 200-300 เมตร)
+    lats = np.random.normal(FIELD_LAT, 0.0012, num_points)
+    lons = np.random.normal(FIELD_LON, 0.0012, num_points)
+    
+    if mode == "FLOODED":
+        # น้ำท่วมขัง: สร้างค่าความเข้มข้นสูง (ดันไปทางส้ม-แดง)
+        weights = np.random.normal(0.85, 0.15, num_points)
     else:
-        weights = np.random.uniform(0.1, 0.4, 500) # AWD มีเทนเจือจาง (สีเขียว/เหลือง)
+        # AWD: สร้างค่าความเข้มข้นต่ำ (อยู่โซนเขียว-เหลือง)
+        weights = np.random.normal(0.3, 0.15, num_points)
         
-    return [[lat, lon, weight] for lat, lon, weight in zip(lats, lons, weights)]
+    # ตัดขอบเขตค่าให้อยู่ระหว่าง 0 ถึง 1
+    weights = np.clip(weights, 0, 1)
+    
+    data = [[lat, lon, weight] for lat, lon, weight in zip(lats, lons, weights)]
+    
+    # ใส่จุด Anchor บังคับสีให้ Folium แสดงสเกลครบ (เขียวไปแดง) เสมอ (ซ่อนไว้ไกลๆ)
+    data.append([0, 0, 1.0]) # บังคับให้มีค่า Max (สีแดง)
+    data.append([0, 0, 0.0]) # บังคับให้มีค่า Min (สีเขียว)
+    
+    return data
 
-# --- 3. SIDEBAR (เมนูควบคุม) ---
+# --- 4. SIDEBAR (CONTROL MODULE) ---
 with st.sidebar:
-    st.image("https://cdn-icons-png.flaticon.com/512/3063/3063822.png", width=70)
-    st.markdown("## 🌾 METHATWIN AI")
-    st.markdown("### AI NEW GEN")
+    st.markdown('<h1 class="brand-logo" style="font-size:28px;">METHATWIN</h1><div class="brand-sub">Command Center</div>', unsafe_allow_html=True)
     st.markdown("---")
     
-    menu = st.radio("เมนูหลัก", ["🎯 แดชบอร์ดติดตามแปลงนา", "🚜 คู่มือปฏิบัติการแกล้งข้าว (AWD)"])
+    st.markdown('<div class="panel-title" style="margin-bottom:10px;"><i class="fa-solid fa-layer-group panel-icon"></i> NAVIGATION</div>', unsafe_allow_html=True)
+    menu = st.radio("", ["LIVE RADAR", "FARMING PROTOCOL"], label_visibility="collapsed")
+    
     st.markdown("---")
+    st.markdown('<div class="panel-title" style="margin-bottom:10px;"><i class="fa-solid fa-sliders panel-icon"></i> WATER MANAGEMENT</div>', unsafe_allow_html=True)
+    water_mode_raw = st.selectbox("", ["AWD (แกล้งข้าว / ระบายน้ำ)", "FLOODED (น้ำท่วมขังขีดสุด)"], label_visibility="collapsed")
+    water_mode = "FLOODED" if "FLOODED" in water_mode_raw else "AWD"
+
+heat_data = generate_radar_data(water_mode)
+
+# --- 5. DASHBOARD INTERFACE ---
+
+if menu == "LIVE RADAR":
+    # Header โลโก้
+    st.markdown('<h1 class="brand-logo">METHATWIN</h1>', unsafe_allow_html=True)
+    st.markdown('<div class="brand-sub">ARTIFICIAL INTELLIGENCE FOR SUSTAINABLE AGRICULTURE</div>', unsafe_allow_html=True)
     
-    st.markdown("**🎛️ จำลองสถานการณ์น้ำในนา**")
-    water_mode = st.selectbox("เลือกโหมด:", ["จัดการน้ำแบบ AWD (แกล้งข้าว)", "น้ำท่วมขัง (วิกฤต)"])
-
-heat_data = generate_heatmap_data(water_mode)
-
-# --- 4. RENDER MODULES ---
-
-if menu == "🎯 แดชบอร์ดติดตามแปลงนา":
-    st.markdown("# 🛰️ ระบบติดตามความหนาแน่นก๊าซมีเทน (Digital Twin)")
-    st.caption("📍 พื้นที่: แปลงวิจัยที่ 3 ศูนย์วิจัยข้าวเชียงใหม่ อ.สันป่าตอง | 📡 แผนที่: Google Maps Satellite (Real-time Heatmap)")
-    
-    # --- ส่วนที่เน้นการทำนา (Farming Status) ---
-    st.markdown("### 🚜 สถานะการเพาะปลูกปัจจุบัน (Farming Status)")
-    col_f1, col_f2, col_f3 = st.columns(3)
-    with col_f1:
-        st.info("**🌱 ระยะการเติบโต:** ระยะแตกกอสูงสุด (Maximum Tillering)")
-    with col_f2:
-        st.warning("**📅 อายุข้าว:** 45 วัน หลังปักดำ")
-    with col_f3:
-        if "AWD" in water_mode:
-            st.success("**💧 สถานะน้ำ:** อยู่ในช่วงระบายน้ำออก (แกล้งข้าว)")
-        else:
-            st.error("**💧 สถานะน้ำ:** น้ำท่วมขัง (ต้องรีบระบายออก!)")
-
-    st.markdown("<br>", unsafe_allow_html=True)
-    
-    # --- การ์ดตัวเลข ---
+    # Metrics Panel
     c1, c2, c3, c4 = st.columns(4)
-    if "AWD" in water_mode:
-        c1.markdown('<div class="metric-card"><div class="card-title">มีเทนเฉลี่ยสะสม</div><div class="card-value" style="color:#00E676;">14.2</div><div class="card-status">mg/m²/h (เกณฑ์ปลอดภัย)</div></div>', unsafe_allow_html=True)
-        c2.markdown('<div class="metric-card"><div class="card-title">ระดับน้ำใต้ดิน</div><div class="card-value" style="color:#00B0FF;">-10 cm</div><div class="card-status">กำลังระบายน้ำ (AWD)</div></div>', unsafe_allow_html=True)
-        c3.markdown('<div class="metric-card"><div class="card-title">คาร์บอนเครดิต</div><div class="card-value">0.42</div><div class="card-status">tCO₂e / ไร่</div></div>', unsafe_allow_html=True)
-        c4.markdown('<div class="metric-card"><div class="card-title">AI แนะนำชาวนา</div><div class="card-value" style="font-size:24px; color:#A0AEC0;">ปล่อยแห้งต่อ</div><div class="card-status">อีก 3 วัน ค่อยเติมน้ำ</div></div>', unsafe_allow_html=True)
+    if water_mode == "AWD":
+        c1.markdown('<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-cloud panel-icon"></i> Methane Flux</div><div class="panel-val text-green">14.2</div><div class="panel-sub">mg/m²/h (SAFE ZONE)</div></div>', unsafe_allow_html=True)
+        c2.markdown('<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-water panel-icon"></i> Water Level</div><div class="panel-val text-blue">-12 cm</div><div class="panel-sub">DRAINING IN PROGRESS</div></div>', unsafe_allow_html=True)
+        c3.markdown('<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-leaf panel-icon"></i> Carbon Credit</div><div class="panel-val">0.42</div><div class="panel-sub">tCO₂e / Rai</div></div>', unsafe_allow_html=True)
+        c4.markdown('<div class="glass-panel"><div class="panel-title"><i class="fa-solid fa-robot panel-icon"></i> AI Action</div><div class="panel-val text-green" style="font-size:24px; margin-top:14px;">MAINTAIN</div><div class="panel-sub">คงสภาพดินแห้งต่อ 3 วัน</div></div>', unsafe_allow_html=True)
     else:
-        c1.markdown('<div class="metric-card"><div class="card-title">มีเทนเฉลี่ยสะสม</div><div class="card-value" style="color:#FF3D00;">78.5</div><div class="card-status">mg/m²/h (อันตราย!)</div></div>', unsafe_allow_html=True)
-        c2.markdown('<div class="metric-card"><div class="card-title">ระดับน้ำใต้ดิน</div><div class="card-value" style="color:#00B0FF;">+8 cm</div><div class="card-status">ท่วมขังต่อเนื่อง 10 วัน</div></div>', unsafe_allow_html=True)
-        c3.markdown('<div class="metric-card"><div class="card-title">คาร์บอนเครดิต</div><div class="card-value" style="color:#FF3D00;">0.00</div><div class="card-status">ไม่ผ่านเกณฑ์ MRV</div></div>', unsafe_allow_html=True)
-        c4.markdown('<div class="metric-card"><div class="card-title">AI แนะนำชาวนา</div><div class="card-value" style="font-size:24px; color:#FF3D00;">สูบน้ำออกทันที!</div><div class="card-status">เสี่ยงโรคและมีเทนพุ่ง</div></div>', unsafe_allow_html=True)
+        c1.markdown('<div class="glass-panel" style="border-color: #FF3D00;"><div class="panel-title"><i class="fa-solid fa-cloud panel-icon" style="color:#FF3D00;"></i> Methane Flux</div><div class="panel-val text-red">82.5</div><div class="panel-sub">mg/m²/h (CRITICAL)</div></div>', unsafe_allow_html=True)
+        c2.markdown('<div class="glass-panel" style="border-color: #FF3D00;"><div class="panel-title"><i class="fa-solid fa-water panel-icon" style="color:#FF3D00;"></i> Water Level</div><div class="panel-val text-blue">+8 cm</div><div class="panel-sub">OVERFLOW DETECTED</div></div>', unsafe_allow_html=True)
+        c3.markdown('<div class="glass-panel" style="border-color: #FF3D00;"><div class="panel-title"><i class="fa-solid fa-leaf panel-icon" style="color:#FF3D00;"></i> Carbon Credit</div><div class="panel-val text-red">0.00</div><div class="panel-sub">MRV FAILED</div></div>', unsafe_allow_html=True)
+        c4.markdown('<div class="glass-panel" style="border-color: #FF3D00;"><div class="panel-title"><i class="fa-solid fa-robot panel-icon" style="color:#FF3D00;"></i> AI Action</div><div class="panel-val text-red" style="font-size:24px; margin-top:14px;">DRAIN NOW</div><div class="panel-sub">ระบายน้ำออกฉุกเฉิน!</div></div>', unsafe_allow_html=True)
 
-    # --- แผนที่ Heatmap ไล่สีควันเนียนๆ บน Google Maps ---
-    st.markdown("### 🗺️ แผนที่เรดาร์ก๊าซมีเทน (Methane Radar Overlay)")
+    # Map Section
+    st.markdown('<div style="margin-top:20px; margin-bottom:10px; color:#A0AEC0; font-size:14px; letter-spacing:1px; text-transform:uppercase;"><i class="fa-solid fa-satellite" style="color:#F47B20; margin-right:8px;"></i> Satellite Radar Overlay (Google Maps)</div>', unsafe_allow_html=True)
     
-    # ดึงแผนที่ Google Maps แบบดาวเทียม (Hybrid: เห็นหลังคา เห็นแปลงนา)
+    # กำหนดแผนที่ Google Maps แบบเห็นแปลงนาชัดๆ
     m = folium.Map(
-        location=[CENTER_LAT, CENTER_LON], 
+        location=[FIELD_LAT, FIELD_LON], 
         zoom_start=17, 
         tiles="https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", 
         attr="Google Maps Satellite",
         control_scale=True
     )
     
-    # ตั้งค่าสีของควัน (ถ้าปลอดภัยจะเป็นสีเขียว/เหลือง, ถ้าวิกฤตจะเป็นสีส้ม/แดง)
-    if "AWD" in water_mode:
-        grad = {0.2: 'lime', 0.5: 'green', 1.0: 'yellow'}
-    else:
-        grad = {0.4: 'yellow', 0.6: 'orange', 1.0: 'red'}
+    # 🎨 เรดาร์ไล่สีสมจริง (เขียว -> เหลือง -> ส้ม -> แดง)
+    color_gradient = {
+        0.2: '#00E676', # สีเขียว (ปลอดภัย)
+        0.5: '#FFEA00', # สีเหลือง (เฝ้าระวัง)
+        0.7: '#FF9100', # สีส้ม (เริ่มอันตราย)
+        1.0: '#FF3D00'  # สีแดง (วิกฤตมีเทน)
+    }
 
-    # ใส่ Layer ควัน (Heatmap)
     HeatMap(
         heat_data, 
-        radius=25,       # ขนาดความฟุ้งของควัน
-        blur=20,         # ความเบลอให้ดูเนียน
-        gradient=grad,   # สีที่ตั้งไว้
-        max_zoom=17
+        radius=28,      
+        blur=22,         
+        gradient=color_gradient,
+        max_zoom=18
     ).add_to(m)
     
-    # แสดงผลใน Streamlit
-    st_folium(m, width=1200, height=500, returned_objects=[])
+    st_folium(m, width=1200, height=520, returned_objects=[])
+
+elif menu == "FARMING PROTOCOL":
+    st.markdown('<h1 class="brand-logo" style="font-size:36px;">FARMING PROTOCOL</h1>', unsafe_allow_html=True)
+    st.markdown('<div class="brand-sub">ACTIONABLE INSIGHTS FOR FARMERS</div>', unsafe_allow_html=True)
     
-elif menu == "🚜 คู่มือปฏิบัติการแกล้งข้าว (AWD)":
-    st.markdown("# 🚜 ปฏิทินปฏิบัติการแกล้งข้าว (Actionable Farming)")
-    st.write("บอกชาวนาแบบเจาะจงเลยว่า วันนี้ต้องทำอะไร เพื่อลดคาร์บอนและเพิ่มผลผลิต!")
+    st.markdown('<div class="glass-panel"><div class="panel-title text-blue"><i class="fa-solid fa-droplet panel-icon text-blue"></i> PHASE 1: VEGETATIVE STAGE (0-20 DAYS)</div><p style="margin-top:10px;">รักษาระดับน้ำให้ท่วมผิวดิน 2-5 ซม. เพื่อควบคุมวัชพืชหลังปักดำ</p></div>', unsafe_allow_html=True)
     
-    st.markdown('<div class="metric-card" style="border-top: 4px solid #00B0FF;">', unsafe_allow_html=True)
-    st.markdown("### 💧 เฟส 1: ข้าวตั้งตัว (อายุ 0-20 วัน)")
-    st.write("**การจัดการน้ำ:** รักษาระดับน้ำให้ท่วมผิวดิน 2-5 ซม. เพื่อควบคุมวัชพืช")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-panel" style="border-left: 4px solid #F47B20; background: rgba(40,20,10,0.8);"><div class="panel-title text-orange"><i class="fa-solid fa-sun panel-icon text-orange"></i> PHASE 2: ACTIVE TILLERING / AWD (20-45 DAYS) - CURRENT STAGE</div><p style="margin-top:10px;"><b>ระบบปฏิบัติการ:</b> หยุดเติมนํ้า ปล่อยให้นํ้าแห้งจนระดับนํ้าใต้ดินลดลงไปถึง -15 ซม. ท่อ PVC ดินจะเริ่มแตกแตง ออกซิเจนแทรกซึมลงสู่ราก จุลินทรีย์สร้างมีเทนตายลง ตัดวงจรแก๊สเรือนกระจก</p></div>', unsafe_allow_html=True)
     
-    st.markdown('<div class="metric-card" style="border-top: 4px solid #F47B20;">', unsafe_allow_html=True)
-    st.markdown("### 🌤️ เฟส 2: ระยะแตกกอ / แกล้งข้าว (อายุ 20-45 วัน) 👈 **(คุณอยู่ที่นี่)**")
-    st.write("**การจัดการน้ำ (AWD):** ปล่อยน้ำให้แห้งไปจนระดับน้ำใต้ดินลดลงไปถึง **-15 ซม.** (วัดจากท่อ PVC) ดินจะเริ่มแตกแตง ออกซิเจนลงสู่ราก จุลินทรีย์สร้างมีเทนจะตายลง")
-    st.write("🔥 **คำแนะนำจาก AI วันนี้:** ระดับน้ำปัจจุบันอยู่ที่ -10 ซม. สามารถรอให้แห้งต่อได้อีก 3-5 วัน")
-    st.markdown('</div>', unsafe_allow_html=True)
-    
-    st.markdown('<div class="metric-card" style="border-top: 4px solid #00E676;">', unsafe_allow_html=True)
-    st.markdown("### 🌾 เฟส 3: ข้าวตั้งท้อง-ออกรวง (อายุ 45-80 วัน)")
-    st.write("**การจัดการน้ำ:** เติมน้ำกลับเข้าแปลงให้สูง 5 ซม. ตลอดช่วงนี้ เพื่อให้ข้าวผสมเกสรและสร้างเมล็ดอย่างสมบูรณ์")
-    st.markdown('</div>', unsafe_allow_html=True)
+    st.markdown('<div class="glass-panel"><div class="panel-title text-green"><i class="fa-solid fa-wheat-awn panel-icon text-green"></i> PHASE 3: REPRODUCTIVE STAGE (45-80 DAYS)</div><p style="margin-top:10px;">เติมน้ำกลับเข้าแปลงให้สูง 5 ซม. ตลอดช่วงนี้ เพื่อให้ข้าวผสมเกสรและสร้างเมล็ดอย่างสมบูรณ์ ป้องกันผลผลิตร่วงหล่น</p></div>', unsafe_allow_html=True)
